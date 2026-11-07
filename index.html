@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>জার্ভিস</title>
+<style>
+:root{--bg:#06121c;--panel:#0d2233;--line:#1c4660;--text:#e6f4fb;--dim:#7fa6bb;--arc:#3fd8ff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#06121c}}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 20px;box-sizing:border-box}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:.5px}
+#log{width:100%;max-width:480px;flex:1;overflow-y:auto;margin:16px 0;display:flex;flex-direction:column;gap:10px}
+.m{padding:10px 14px;border-radius:12px;max-width:85%;line-height:1.5;font-size:17px}
+.me{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}
+.ai{align-self:flex-start;border:1px solid var(--arc);color:var(--arc)}
+.hint{color:var(--dim);font-size:15px;text-align:center;margin:auto}
+#mic{width:116px;height:116px;border-radius:50%;border:3px solid var(--arc);background:radial-gradient(circle,#0f3a52 0%,#08202f 70%);color:var(--arc);font-size:15px;font-family:inherit;cursor:pointer;box-shadow:0 0 24px #3fd8ff44}
+#mic:focus-visible{outline:3px solid #fff;outline-offset:4px}
+#mic.on{background:var(--arc);color:#04202e;box-shadow:0 0 40px var(--arc)}
+#st{color:var(--dim);font-size:14px;margin-top:10px;min-height:20px}
+</style>
+</head>
+<body>
+<h1>জার্ভিস</h1>
+<div id="log"><div class="hint">নিচের বোতাম চেপে বাংলায় বলো:<br>“সময় কত?”, “আজ কত তারিখ?”, “হ্যালো”</div></div>
+<div style="text-align:center">
+<button id="mic">চাপো ও বলো</button>
+<div id="st"></div>
+</div>
+<script>
+var log=document.getElementById('log'),mic=document.getElementById('mic'),st=document.getElementById('st');
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function add(t,c){var h=log.querySelector('.hint');if(h)h.remove();var d=document.createElement('div');d.className='m '+c;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight}
+function speak(t){try{var u=new SpeechSynthesisUtterance(t);u.lang='bn-BD';speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function toBn(s){return String(s).replace(/\d/g,function(d){return '০১২৩৪৫৬৭৮৯'[d]})}
+function answer(q){
+  q=q.toLowerCase();
+  if(/সময়|টাইম|কয়টা|কটা/.test(q)){var n=new Date();return 'এখন সময় '+toBn(n.toLocaleTimeString('bn-BD',{hour:'numeric',minute:'2-digit'}))}
+  if(/তারিখ|দিন|ডেট/.test(q)){return 'আজ '+new Date().toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+  if(/হ্যালো|হাই|সালাম|হেলো/.test(q)){return 'হ্যালো! আমি জার্ভিস। বলো, কীভাবে সাহায্য করতে পারি?'}
+  if(/নাম/.test(q)){return 'আমার নাম জার্ভিস।'}
+  return 'এখনো এটা শিখিনি। পরের ধাপে আমাকে এআই মস্তিষ্ক দেওয়া হবে।'
+}
+if(!SR){st.textContent='এই ব্রাউজারে ভয়েস সাপোর্ট নেই। Chrome ব্যবহার করো।';mic.disabled=true}
+else{
+  var r=new SR();r.lang='bn-BD';r.interimResults=false;
+  r.onstart=function(){mic.classList.add('on');mic.textContent='শুনছি…';st.textContent=''};
+  r.onend=function(){mic.classList.remove('on');mic.textContent='চাপো ও বলো'};
+  r.onerror=function(e){st.textContent=e.error==='not-allowed'?'মাইক্রোফোনের অনুমতি দাও।':'শুনতে পারিনি, আবার চেষ্টা করো।'};
+  r.onresult=function(e){var t=e.results[0][0].transcript;add(t,'me');var a=answer(t);add(a,'ai');speak(a)};
+  mic.onclick=function(){try{r.start()}catch(e){}};
+}
+</script>
+</body>
+</html>
