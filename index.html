@@ -49,8 +49,8 @@ function speak(t) {
 }
 function toBn(s) { return String(s).replace(/\d/g, function (d) { return "০১২৩৪৫৬৭৮৯"[d]; }); }
 function local(q) {
-  if (/সময়|টাইম|কয়টা|কটা/.test(q)) return "এখন সময় " + toBn(new Date().toLocaleTimeString("bn-BD", { hour: "numeric", minute: "2-digit" }));
-  if (/তারিখ|ডেট/.test(q)) return "আজ " + new Date().toLocaleDateString("bn-BD", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  if (/(সময়|টাইম)\s*(কত|কি|কী)|কয়টা\s*বাজে|কটা\s*বাজে|এখন\s*কত\s*বাজে/.test(q)) return "এখন সময় " + toBn(new Date().toLocaleTimeString("bn-BD", { hour: "numeric", minute: "2-digit" }));
+  if (/আজ(কে)?\s*(কত|কি|কী)\s*তারিখ|আজকের\s*(তারিখ|ডেট)|আজ\s*কী\s*বার/.test(q)) return "আজ " + new Date().toLocaleDateString("bn-BD", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return null;
 }
 async function ask(q) {
