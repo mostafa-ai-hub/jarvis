@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>সাথী</title>
+<title>Saathi</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -12,10 +12,11 @@
 <style>
 :root{--bg:#06121c;--panel:#0d2233;--line:#1c4660;--text:#e6f4fb;--dim:#7fa6bb;--arc:#3fd8ff}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 20px;padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom));box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sans Bengali","Noto Sans Devanagari",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 20px;padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom));box-sizing:border-box}
 header{text-align:center}
-h1{font-size:28px;font-weight:600;margin:0;color:var(--arc)}
+h1{font-size:30px;font-weight:600;margin:0;color:var(--arc)}
 .by{color:var(--dim);font-size:14px;margin-top:2px}
+select{margin-top:10px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:15px;font-family:inherit}
 #log{width:100%;max-width:480px;flex:1;overflow-y:auto;margin:16px 0;display:flex;flex-direction:column;gap:10px}
 .m{padding:10px 14px;border-radius:12px;max-width:85%;line-height:1.5;font-size:17px}
 .me{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}
@@ -27,56 +28,68 @@ h1{font-size:28px;font-weight:600;margin:0;color:var(--arc)}
 </style>
 </head>
 <body>
-<header><h1>সাথী</h1><div class="by">বানিয়েছেন মোস্তফা</div></header>
-<div id="log"><div class="hint">নমস্কার, আমি সাথী। 👋<br>নিচের বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।</div></div>
+<header>
+<h1>Saathi</h1>
+<div class="by">Built by Mostafa</div>
+<select id="lang">
+<option value="en-IN">English</option>
+<option value="hi-IN">हिन्दी</option>
+<option value="bn-IN">বাংলা</option>
+</select>
+</header>
+<div id="log"><div class="hint" id="hint"></div></div>
 <div style="text-align:center">
-<button id="mic">চাপো ও বলো</button>
+<button id="mic"></button>
 <div id="st"></div>
 </div>
 <script>
 var BRAIN = "https://jarvis-brain.ariyankhanna30405.workers.dev";
-var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st");
+var T = {
+  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
+  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
+  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
+};
+var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st"), hint = document.getElementById("hint"), sel = document.getElementById("lang");
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var history = [];
+var history = [], lang = "en-IN", rec = null;
+try { var saved = localStorage.getItem("saathi-lang"); if (saved && T[saved]) lang = saved; } catch (e) {}
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
+function applyLang() {
+  sel.value = lang; hint.innerHTML = T[lang].hint; mic.textContent = T[lang].tap; document.documentElement.lang = lang.slice(0, 2);
+  if (rec) rec.lang = lang;
+}
 function add(t, c) {
   var h = log.querySelector(".hint"); if (h) h.remove();
   var d = document.createElement("div"); d.className = "m " + c; d.textContent = t;
   log.appendChild(d); log.scrollTop = log.scrollHeight;
 }
 function speak(t) {
-  try { var u = new SpeechSynthesisUtterance(t); u.lang = "bn-BD"; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
-}
-function toBn(s) { return String(s).replace(/\d/g, function (d) { return "০১২৩৪৫৬৭৮৯"[d]; }); }
-function local(q) {
-  if (/(সময়|টাইম)\s*(কত|কি|কী)|কয়টা\s*বাজে|কটা\s*বাজে|এখন\s*কত\s*বাজে/.test(q)) return "এখন সময় " + toBn(new Date().toLocaleTimeString("bn-BD", { hour: "numeric", minute: "2-digit" }));
-  if (/আজ(কে)?\s*(কত|কি|কী)\s*তারিখ|আজকের\s*(তারিখ|ডেট)|আজ\s*কী\s*বার/.test(q)) return "আজ " + new Date().toLocaleDateString("bn-BD", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  return null;
+  try { var u = new SpeechSynthesisUtterance(t); u.lang = lang; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
 async function ask(q) {
-  var l = local(q);
-  if (l) return l;
-  st.textContent = "ভাবছি…";
+  st.textContent = T[lang].think;
   try {
-    var r = await fetch(BRAIN, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: q, history: history }), signal: AbortSignal.timeout(30000) });
+    var r = await fetch(BRAIN, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: q, history: history, lang: lang }), signal: AbortSignal.timeout(30000) });
     var d = await r.json();
-    return d.reply || "দুঃখিত, উত্তর পাইনি।";
-  } catch (e) { return "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করো।"; }
+    return d.reply || T[lang].empty;
+  } catch (e) { return T[lang].net; }
 }
-if (!SR) { st.textContent = "Chrome ব্রাউজারে খোলো।"; mic.disabled = true; }
+sel.onchange = function () { lang = sel.value; try { localStorage.setItem("saathi-lang", lang); } catch (e) {} applyLang(); };
+if (!SR) { st.textContent = T[lang].nosr; mic.disabled = true; applyLang(); }
 else {
-  var r = new SR(); r.lang = "bn-BD"; r.interimResults = false;
-  r.onstart = function () { mic.classList.add("on"); mic.textContent = "শুনছি…"; st.textContent = ""; };
-  r.onend = function () { mic.classList.remove("on"); mic.textContent = "চাপো ও বলো"; };
-  r.onerror = function (e) { st.textContent = e.error === "not-allowed" ? "মাইক্রোফোনের অনুমতি দাও।" : "শুনতে পারিনি, আবার চেষ্টা করো।"; };
-  r.onresult = async function (e) {
+  rec = new SR(); rec.interimResults = false;
+  rec.onstart = function () { mic.classList.add("on"); mic.textContent = T[lang].listen; st.textContent = ""; };
+  rec.onend = function () { mic.classList.remove("on"); mic.textContent = T[lang].tap; };
+  rec.onerror = function (e) { st.textContent = e.error === "not-allowed" ? T[lang].nomic : T[lang].retry; };
+  rec.onresult = async function (e) {
     var t = e.results[0][0].transcript; add(t, "me");
     var a = await ask(t); st.textContent = "";
     add(a, "ai"); speak(a);
     history.push({ role: "user", text: t }); history.push({ role: "ai", text: a });
     if (history.length > 10) history = history.slice(-10);
   };
-  mic.onclick = function () { try { r.start(); } catch (e) {} };
+  mic.onclick = function () { try { rec.lang = lang; rec.start(); } catch (e) {} };
+  applyLang();
 }
 </script>
 </body>
