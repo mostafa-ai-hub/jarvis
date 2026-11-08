@@ -3,25 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>জার্ভিস</title>
+<title>সাথী</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#06121c">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 :root{--bg:#06121c;--panel:#0d2233;--line:#1c4660;--text:#e6f4fb;--dim:#7fa6bb;--arc:#3fd8ff}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 20px;box-sizing:border-box}
-h1{font-size:22px;font-weight:600;margin:0}
+body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sans Bengali",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:24px 20px;padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom));box-sizing:border-box}
+header{text-align:center}
+h1{font-size:28px;font-weight:600;margin:0;color:var(--arc)}
+.by{color:var(--dim);font-size:14px;margin-top:2px}
 #log{width:100%;max-width:480px;flex:1;overflow-y:auto;margin:16px 0;display:flex;flex-direction:column;gap:10px}
 .m{padding:10px 14px;border-radius:12px;max-width:85%;line-height:1.5;font-size:17px}
 .me{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}
 .ai{align-self:flex-start;border:1px solid var(--arc);color:var(--arc)}
-.hint{color:var(--dim);font-size:15px;text-align:center;margin:auto}
+.hint{color:var(--dim);font-size:16px;text-align:center;margin:auto;line-height:1.7}
 #mic{width:116px;height:116px;border-radius:50%;border:3px solid var(--arc);background:radial-gradient(circle,#0f3a52 0%,#08202f 70%);color:var(--arc);font-size:15px;font-family:inherit;cursor:pointer;box-shadow:0 0 24px #3fd8ff44}
 #mic.on{background:var(--arc);color:#04202e;box-shadow:0 0 40px var(--arc)}
 #st{color:var(--dim);font-size:14px;margin-top:10px;min-height:20px;text-align:center}
 </style>
 </head>
 <body>
-<h1>জার্ভিস</h1>
-<div id="log"><div class="hint">নিচের বোতাম চেপে বাংলায় যেকোনো কিছু জিজ্ঞেস করো</div></div>
+<header><h1>সাথী</h1><div class="by">বানিয়েছেন মোস্তফা</div></header>
+<div id="log"><div class="hint">নমস্কার, আমি সাথী। 👋<br>নিচের বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।</div></div>
 <div style="text-align:center">
 <button id="mic">চাপো ও বলো</button>
 <div id="st"></div>
@@ -31,6 +38,7 @@ var BRAIN = "https://jarvis-brain.ariyankhanna30405.workers.dev";
 var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st");
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 var history = [];
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
 function add(t, c) {
   var h = log.querySelector(".hint"); if (h) h.remove();
   var d = document.createElement("div"); d.className = "m " + c; d.textContent = t;
@@ -50,12 +58,12 @@ async function ask(q) {
   if (l) return l;
   st.textContent = "ভাবছি…";
   try {
-    var r = await fetch(BRAIN, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: q, history: history }) });
+    var r = await fetch(BRAIN, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: q, history: history }), signal: AbortSignal.timeout(30000) });
     var d = await r.json();
     return d.reply || "দুঃখিত, উত্তর পাইনি।";
-  } catch (e) { return "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে।"; }
+  } catch (e) { return "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করো।"; }
 }
-if (!SR) { st.textContent = "Chrome ব্যবহার করো।"; mic.disabled = true; }
+if (!SR) { st.textContent = "Chrome ব্রাউজারে খোলো।"; mic.disabled = true; }
 else {
   var r = new SR(); r.lang = "bn-BD"; r.interimResults = false;
   r.onstart = function () { mic.classList.add("on"); mic.textContent = "শুনছি…"; st.textContent = ""; };
