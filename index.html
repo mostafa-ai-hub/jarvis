@@ -16,7 +16,8 @@ body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sa
 header{text-align:center}
 h1{font-size:30px;font-weight:600;margin:0;color:var(--arc)}
 .by{color:var(--dim);font-size:14px;margin-top:2px}
-select{margin-top:10px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:15px;font-family:inherit}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:15px;font-family:inherit;max-width:46vw}
 #log{width:100%;max-width:480px;flex:1;overflow-y:auto;margin:16px 0;display:flex;flex-direction:column;gap:10px}
 .m{padding:10px 14px;border-radius:12px;max-width:85%;line-height:1.5;font-size:17px}
 .me{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}
@@ -31,11 +32,21 @@ select{margin-top:10px;background:var(--panel);color:var(--text);border:1px soli
 <header>
 <h1>Saathi</h1>
 <div class="by">Built by Mostafa</div>
+<div class="row">
 <select id="lang">
 <option value="en-IN">English</option>
 <option value="hi-IN">हिन्दी</option>
 <option value="bn-IN">বাংলা</option>
 </select>
+<select id="voice">
+<option value="Kore">Saathi (Official, Female)</option>
+<option value="Aoede">Aoede (Female)</option>
+<option value="Zephyr">Zephyr (Female)</option>
+<option value="Puck">Puck (Male)</option>
+<option value="Charon">Charon (Male)</option>
+<option value="Fenrir">Fenrir (Male)</option>
+</select>
+</div>
 </header>
 <div id="log"><div class="hint" id="hint"></div></div>
 <div style="text-align:center">
@@ -45,17 +56,20 @@ select{margin-top:10px;background:var(--panel);color:var(--text);border:1px soli
 <script>
 var BRAIN = "https://jarvis-brain.ariyankhanna30405.workers.dev";
 var T = {
-  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
-  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
-  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
+  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", speak: "Speaking…", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
+  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", speak: "बोल रहा हूँ…", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
+  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", speak: "বলছি…", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
 };
-var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st"), hint = document.getElementById("hint"), sel = document.getElementById("lang");
+var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st"), hint = document.getElementById("hint"), sel = document.getElementById("lang"), vsel = document.getElementById("voice");
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var history = [], lang = "en-IN", rec = null;
-try { var saved = localStorage.getItem("saathi-lang"); if (saved && T[saved]) lang = saved; } catch (e) {}
+var history = [], lang = "en-IN", voice = "Kore", rec = null, cur = null;
+try {
+  var sl = localStorage.getItem("saathi-lang"); if (sl && T[sl]) lang = sl;
+  var sv = localStorage.getItem("saathi-voice"); if (sv) voice = sv;
+} catch (e) {}
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
 function applyLang() {
-  sel.value = lang; hint.innerHTML = T[lang].hint; mic.textContent = T[lang].tap; document.documentElement.lang = lang.slice(0, 2);
+  sel.value = lang; vsel.value = voice; hint.innerHTML = T[lang].hint; mic.textContent = T[lang].tap; document.documentElement.lang = lang.slice(0, 2);
   if (rec) rec.lang = lang;
 }
 function add(t, c) {
@@ -66,6 +80,21 @@ function add(t, c) {
 function speak(t) {
   try { var u = new SpeechSynthesisUtterance(t); u.lang = lang; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
+function stopAudio() {
+  try { if (cur) { cur.pause(); cur = null; } speechSynthesis.cancel(); } catch (e) {}
+}
+async function speakAI(t) {
+  st.textContent = T[lang].speak;
+  try {
+    var r = await fetch(BRAIN + "?say=" + encodeURIComponent(t) + "&voice=" + encodeURIComponent(voice), { signal: AbortSignal.timeout(30000) });
+    if (!r.ok) throw new Error("tts");
+    var b = await r.blob();
+    stopAudio();
+    cur = new Audio(URL.createObjectURL(b));
+    cur.onended = function () { st.textContent = ""; };
+    await cur.play();
+  } catch (e) { st.textContent = ""; speak(t); }
+}
 async function ask(q) {
   st.textContent = T[lang].think;
   try {
@@ -75,6 +104,7 @@ async function ask(q) {
   } catch (e) { return T[lang].net; }
 }
 sel.onchange = function () { lang = sel.value; try { localStorage.setItem("saathi-lang", lang); } catch (e) {} applyLang(); };
+vsel.onchange = function () { voice = vsel.value; try { localStorage.setItem("saathi-voice", voice); } catch (e) {} };
 if (!SR) { st.textContent = T[lang].nosr; mic.disabled = true; applyLang(); }
 else {
   rec = new SR(); rec.interimResults = false;
@@ -84,11 +114,11 @@ else {
   rec.onresult = async function (e) {
     var t = e.results[0][0].transcript; add(t, "me");
     var a = await ask(t); st.textContent = "";
-    add(a, "ai"); speak(a);
+    add(a, "ai"); speakAI(a);
     history.push({ role: "user", text: t }); history.push({ role: "ai", text: a });
     if (history.length > 10) history = history.slice(-10);
   };
-  mic.onclick = function () { try { rec.lang = lang; rec.start(); } catch (e) {} };
+  mic.onclick = function () { try { stopAudio(); rec.lang = lang; rec.start(); } catch (e) {} };
   applyLang();
 }
 </script>
