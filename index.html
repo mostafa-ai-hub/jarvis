@@ -45,6 +45,7 @@ select{background:var(--panel);color:var(--text);border:1px solid var(--line);bo
 <option value="Puck">Puck (Male)</option>
 <option value="Charon">Charon (Male)</option>
 <option value="Fenrir">Fenrir (Male)</option>
+<option value="device">Fast (phone voice)</option>
 </select>
 </div>
 </header>
@@ -56,13 +57,13 @@ select{background:var(--panel);color:var(--text);border:1px solid var(--line);bo
 <script>
 var BRAIN = "https://jarvis-brain.ariyankhanna30405.workers.dev";
 var T = {
-  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", speak: "Speaking…", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
-  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", speak: "बोल रहा हूँ…", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
-  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", speak: "বলছি…", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
+  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", speak: "Preparing voice…", busy: "AI voice is busy, so I'm using the phone voice.", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
+  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", speak: "आवाज़ तैयार हो रही है…", busy: "एआई आवाज़ अभी व्यस्त है, फ़ोन की आवाज़ में बोल रहा हूँ।", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
+  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", speak: "ভয়েস তৈরি হচ্ছে…", busy: "এআই ভয়েস এখন ব্যস্ত, তাই ফোনের ভয়েসে বলছি।", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
 };
 var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st"), hint = document.getElementById("hint"), sel = document.getElementById("lang"), vsel = document.getElementById("voice");
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var history = [], lang = "en-IN", voice = "Kore", rec = null, cur = null;
+var history = [], lang = "en-IN", voice = "Kore", rec = null, cur = null, playId = 0;
 try {
   var sl = localStorage.getItem("saathi-lang"); if (sl && T[sl]) lang = sl;
   var sv = localStorage.getItem("saathi-voice"); if (sv) voice = sv;
@@ -81,19 +82,36 @@ function speak(t) {
   try { var u = new SpeechSynthesisUtterance(t); u.lang = lang; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
 }
 function stopAudio() {
+  playId++;
   try { if (cur) { cur.pause(); cur = null; } speechSynthesis.cancel(); } catch (e) {}
 }
+async function getAudio(text, v) {
+  var r = await fetch(BRAIN + "?say=" + encodeURIComponent(text) + "&voice=" + encodeURIComponent(v), { signal: AbortSignal.timeout(40000) });
+  if (!r.ok) throw new Error("tts");
+  return URL.createObjectURL(await r.blob());
+}
+function playUrl(url, id) {
+  return new Promise(function (resolve, reject) {
+    if (id !== playId) { resolve(); return; }
+    cur = new Audio(url);
+    cur.onended = function () { resolve(); };
+    cur.onerror = function () { reject(new Error("play")); };
+    cur.play().catch(reject);
+  });
+}
 async function speakAI(t) {
+  if (voice === "device") { speak(t); return; }
+  stopAudio();
+  var id = playId;
   st.textContent = T[lang].speak;
   try {
-    var r = await fetch(BRAIN + "?say=" + encodeURIComponent(t) + "&voice=" + encodeURIComponent(voice), { signal: AbortSignal.timeout(30000) });
-    if (!r.ok) throw new Error("tts");
-    var b = await r.blob();
-    stopAudio();
-    cur = new Audio(URL.createObjectURL(b));
-    cur.onended = function () { st.textContent = ""; };
-    await cur.play();
-  } catch (e) { st.textContent = ""; speak(t); }
+    var url = await getAudio(t, voice);
+    if (id !== playId) return;
+    await playUrl(url, id);
+    if (id === playId) st.textContent = "";
+  } catch (e) {
+    if (id === playId) { st.textContent = T[lang].busy; speak(t); }
+  }
 }
 async function ask(q) {
   st.textContent = T[lang].think;
