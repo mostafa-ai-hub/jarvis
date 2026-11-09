@@ -16,6 +16,7 @@ body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri","Noto Sa
 header{text-align:center}
 h1{font-size:30px;font-weight:600;margin:0;color:var(--arc)}
 .by{color:var(--dim);font-size:14px;margin-top:2px}
+.by a{color:var(--arc);cursor:pointer;text-decoration:underline}
 .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:15px;font-family:inherit;max-width:46vw}
 #log{width:100%;max-width:480px;flex:1;overflow-y:auto;margin:16px 0;display:flex;flex-direction:column;gap:10px}
@@ -23,6 +24,9 @@ select{background:var(--panel);color:var(--text);border:1px solid var(--line);bo
 .me{align-self:flex-end;background:var(--panel);border:1px solid var(--line)}
 .ai{align-self:flex-start;border:1px solid var(--arc);color:var(--arc)}
 .hint{color:var(--dim);font-size:16px;text-align:center;margin:auto;line-height:1.7}
+#login{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
+.gbtn{background:#fff;color:#1f1f1f;border:none;border-radius:12px;padding:14px 22px;font-size:17px;font-family:inherit;cursor:pointer;font-weight:600}
+.err{color:#ff9b9b;font-size:14px;max-width:320px;min-height:18px}
 #mic{width:116px;height:116px;border-radius:50%;border:3px solid var(--arc);background:radial-gradient(circle,#0f3a52 0%,#08202f 70%);color:var(--arc);font-size:15px;font-family:inherit;cursor:pointer;box-shadow:0 0 24px #3fd8ff44}
 #mic.on{background:var(--arc);color:#04202e;box-shadow:0 0 40px var(--arc)}
 #st{color:var(--dim);font-size:14px;margin-top:10px;min-height:20px;text-align:center}
@@ -32,6 +36,7 @@ select{background:var(--panel);color:var(--text);border:1px solid var(--line);bo
 <header>
 <h1>Saathi</h1>
 <div class="by">Built by Mostafa</div>
+<div class="by" id="who"></div>
 <div class="row">
 <select id="lang">
 <option value="en-IN">English</option>
@@ -49,28 +54,53 @@ select{background:var(--panel);color:var(--text);border:1px solid var(--line);bo
 </select>
 </div>
 </header>
-<div id="log"><div class="hint" id="hint"></div></div>
-<div style="text-align:center">
+<div id="login"><div class="hint" id="lhint"></div><button class="gbtn" id="gbtn"></button><div class="err" id="lerr"></div></div>
+<div id="log" style="display:none"><div class="hint" id="hint"></div></div>
+<div id="ctl" style="display:none;text-align:center">
 <button id="mic"></button>
 <div id="st"></div>
 </div>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+var fbApp = initializeApp({
+  apiKey: "AIzaSyC5GyEgZLADqUh6u5pYRWG25IxsdMWbnZ0",
+  authDomain: "saathi-edcce.firebaseapp.com",
+  projectId: "saathi-edcce",
+  storageBucket: "saathi-edcce.firebasestorage.app",
+  messagingSenderId: "675544948393",
+  appId: "1:675544948393:web:ece5c78947d1a7c2c613b8"
+});
+var auth = getAuth(fbApp);
 var BRAIN = "https://jarvis-brain.ariyankhanna30405.workers.dev";
 var T = {
-  "en-IN": { hint: "Hi, I'm Saathi 👋<br>Tap the button and ask me anything.", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", speak: "Preparing voice…", busy: "AI voice is busy, so I'm using the phone voice.", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer." },
-  "hi-IN": { hint: "नमस्ते, मैं साथी हूँ 👋<br>बटन दबाइए और कुछ भी पूछिए।", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", speak: "आवाज़ तैयार हो रही है…", busy: "एआई आवाज़ अभी व्यस्त है, फ़ोन की आवाज़ में बोल रहा हूँ।", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।" },
-  "bn-IN": { hint: "নমস্কার, আমি সাথী 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", speak: "ভয়েস তৈরি হচ্ছে…", busy: "এআই ভয়েস এখন ব্যস্ত, তাই ফোনের ভয়েসে বলছি।", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।" }
+  "en-IN": { hello: "Hello, {n} 👋<br>Tap the button and ask me anything.", welcome: "Welcome to Saathi 👋<br>Sign in to start talking.", signin: "Continue with Google", signout: "Sign out", signedas: "Signed in as", tap: "Tap & Speak", listen: "Listening…", think: "Thinking…", speak: "Preparing voice…", busy: "AI voice is busy, so I'm using the phone voice.", nomic: "Please allow the microphone.", retry: "Couldn't hear you, try again.", net: "Sorry, there is a connection problem. Please try again.", nosr: "Please open in Chrome.", empty: "Sorry, I got no answer.", lerr: "Sign-in failed: " },
+  "hi-IN": { hello: "नमस्ते, {n} 👋<br>बटन दबाइए और कुछ भी पूछिए।", welcome: "साथी में आपका स्वागत है 👋<br>बात शुरू करने के लिए साइन इन करें।", signin: "Google से जारी रखें", signout: "साइन आउट", signedas: "साइन इन:", tap: "दबाइए और बोलिए", listen: "सुन रहा हूँ…", think: "सोच रहा हूँ…", speak: "आवाज़ तैयार हो रही है…", busy: "एआई आवाज़ अभी व्यस्त है, फ़ोन की आवाज़ में बोल रहा हूँ।", nomic: "कृपया माइक्रोफ़ोन की अनुमति दें।", retry: "सुन नहीं पाया, फिर से कोशिश करें।", net: "माफ़ कीजिए, कनेक्शन में समस्या है। फिर कोशिश करें।", nosr: "कृपया Chrome में खोलें।", empty: "माफ़ कीजिए, जवाब नहीं मिला।", lerr: "साइन-इन विफल: " },
+  "bn-IN": { hello: "নমস্কার, {n} 👋<br>বোতাম চেপে আমাকে যেকোনো কিছু জিজ্ঞেস করো।", welcome: "সাথীতে স্বাগতম 👋<br>কথা শুরু করতে সাইন ইন করো।", signin: "Google দিয়ে চালিয়ে যাও", signout: "সাইন আউট", signedas: "সাইন ইন:", tap: "চাপো ও বলো", listen: "শুনছি…", think: "ভাবছি…", speak: "ভয়েস তৈরি হচ্ছে…", busy: "এআই ভয়েস এখন ব্যস্ত, তাই ফোনের ভয়েসে বলছি।", nomic: "মাইক্রোফোনের অনুমতি দাও।", retry: "শুনতে পারিনি, আবার চেষ্টা করো।", net: "দুঃখিত, ইন্টারনেটে সমস্যা হচ্ছে। আবার চেষ্টা করো।", nosr: "Chrome ব্রাউজারে খোলো।", empty: "দুঃখিত, উত্তর পাইনি।", lerr: "সাইন-ইন হয়নি: " }
 };
-var log = document.getElementById("log"), mic = document.getElementById("mic"), st = document.getElementById("st"), hint = document.getElementById("hint"), sel = document.getElementById("lang"), vsel = document.getElementById("voice");
+var $ = function (id) { return document.getElementById(id); };
+var log = $("log"), mic = $("mic"), st = $("st"), hint = $("hint"), sel = $("lang"), vsel = $("voice");
+var loginEl = $("login"), lhint = $("lhint"), gbtn = $("gbtn"), lerr = $("lerr"), ctl = $("ctl"), who = $("who");
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var history = [], lang = "en-IN", voice = "Kore", rec = null, cur = null, playId = 0;
+var history = [], lang = "en-IN", voice = "Kore", rec = null, cur = null, playId = 0, user = null;
 try {
   var sl = localStorage.getItem("saathi-lang"); if (sl && T[sl]) lang = sl;
   var sv = localStorage.getItem("saathi-voice"); if (sv) voice = sv;
 } catch (e) {}
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
-function applyLang() {
-  sel.value = lang; vsel.value = voice; hint.innerHTML = T[lang].hint; mic.textContent = T[lang].tap; document.documentElement.lang = lang.slice(0, 2);
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function firstName() { return ((user && user.displayName) || "").split(" ")[0] || "friend"; }
+function render() {
+  sel.value = lang; vsel.value = voice; document.documentElement.lang = lang.slice(0, 2);
+  mic.textContent = T[lang].tap; gbtn.textContent = T[lang].signin; lhint.innerHTML = T[lang].welcome;
+  if (user) {
+    loginEl.style.display = "none"; log.style.display = "flex"; ctl.style.display = "block";
+    hint.innerHTML = T[lang].hello.replace("{n}", esc(firstName()));
+    who.innerHTML = T[lang].signedas + " " + esc(user.displayName || user.email || "") + " · <a id=\"so\">" + T[lang].signout + "</a>";
+    $("so").onclick = function () { stopAudio(); signOut(auth); };
+  } else {
+    loginEl.style.display = "flex"; log.style.display = "none"; ctl.style.display = "none"; who.textContent = "";
+  }
   if (rec) rec.lang = lang;
 }
 function add(t, c) {
@@ -121,9 +151,17 @@ async function ask(q) {
     return d.reply || T[lang].empty;
   } catch (e) { return T[lang].net; }
 }
-sel.onchange = function () { lang = sel.value; try { localStorage.setItem("saathi-lang", lang); } catch (e) {} applyLang(); };
+sel.onchange = function () { lang = sel.value; try { localStorage.setItem("saathi-lang", lang); } catch (e) {} render(); };
 vsel.onchange = function () { voice = vsel.value; try { localStorage.setItem("saathi-voice", voice); } catch (e) {} };
-if (!SR) { st.textContent = T[lang].nosr; mic.disabled = true; applyLang(); }
+gbtn.onclick = function () {
+  lerr.textContent = "";
+  signInWithPopup(auth, new GoogleAuthProvider()).catch(function (e) { lerr.textContent = T[lang].lerr + (e && e.code ? e.code : e); });
+};
+onAuthStateChanged(auth, function (u) {
+  user = u; if (!u) { history = []; }
+  render();
+});
+if (!SR) { st.textContent = T[lang].nosr; mic.disabled = true; }
 else {
   rec = new SR(); rec.interimResults = false;
   rec.onstart = function () { mic.classList.add("on"); mic.textContent = T[lang].listen; st.textContent = ""; };
@@ -137,8 +175,8 @@ else {
     if (history.length > 10) history = history.slice(-10);
   };
   mic.onclick = function () { try { stopAudio(); rec.lang = lang; rec.start(); } catch (e) {} };
-  applyLang();
 }
+render();
 </script>
 </body>
 </html>
